@@ -989,7 +989,7 @@ from ruta_config_sucursal rcs
 where rcs.cliente_principal_id <> 0
 
 
-set @idRuta = 232;
+set @idRuta = 4;
 
 /*query listo para sucursales va a suplir el stored procedure */
 select 
@@ -1011,7 +1011,7 @@ cp.monto_seguro,
 cp.subtotal,
 cmd.empaque_id,
 cmd.Empaque,
-cmd.cantidad_caja,
+sum(cmd.cantidad_caja) num_items,
 clip.id as idCliente,
 clip.nombre as clienteOrigen
 from viaje_guia vg
@@ -1086,7 +1086,7 @@ cp.monto_seguro,
 cp.subtotal,
 cmd.empaque_id,
 cmd.Empaque,
-cmd.cantidad_caja,
+sum(cmd.cantidad_caja) num_items,
 clip.id as idCliente,
 clip.nombre as clienteOrigen
 from viaje_guia vg
