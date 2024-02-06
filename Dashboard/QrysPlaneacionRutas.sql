@@ -1138,3 +1138,185 @@ from ruta_config_sucursal rcs
 inner join sucursal_principal sp on sp.id= rcs.sucursal_principal_id 
 where rcs.ruta_principal_id = @idRuta
 and rcs.cliente_principal_id = 0
+
+
+
+select 
+vg.referencia,
+cp.sucursal_principal_id, 
+sp.nombre as sucursal_principal, 
+vg.fecha_registro, 
+vg.sucursal_principal_ubicacion_id as sucursal_ubicacion_id,
+sp2.nombre as sucursal_ubicacion,
+vg.sucursal_destino_id ,
+sp3.nombre as sucursal_destino,
+cp.origen_id,
+dp2.nombre as destino_origen,
+cp.destino_id,
+dp2.nombre as destino_final,
+cp.cotizacion_principal_volumen,
+cp.cotizacion_principal_peso ,
+cp.flete,
+cp.monto_seguro,
+cp.subtotal,
+cmd.empaque_id,
+cmd.Empaque,
+cmd.cantidad_caja,
+clip.id as idCliente,
+clip.nombre as clienteOrigen
+from viaje_guia vg
+inner join cotizacion_principal cp on cp.id= vg.cotizacion_principal_id 
+inner join cotizacion_monto_detalle cmd on cmd.cotizacion_principal_id = vg.cotizacion_principal_id 
+and vg.viaje_operacion_id in (1,19)
+and vg.sucursal_principal_ubicacion_id  <> vg.sucursal_destino_id 
+and vg.fecha_registro between adddate(current_date(), interval -90 day)  and current_date()
+and vg.sucursal_principal_ubicacion_id in (select rcs.sucursal_principal_id 
+from ruta_config_sucursal rcs 
+where rcs.ruta_principal_id = @idRuta
+and rcs.sucursal_principal_id <> 0
+and rcs.cliente_principal_id <> 0
+group by rcs.sucursal_principal_id)
+and vg.llego = 0
+inner join sucursal_principal sp on sp.id = cp.sucursal_principal_id 
+inner join sucursal_principal sp2 on sp2.id = vg.sucursal_principal_ubicacion_id 
+inner join sucursal_principal sp3 on sp3.id = vg.sucursal_destino_id 
+inner join inventario_principal ip on ip.cotizacion_principal_id = vg.cotizacion_principal_id 
+inner join destino_principal dp2 on dp2.id = cp.origen_id 
+inner join destino_principal dp3 on dp3.id = cp.destino_id  
+and (ip.llego = 0 or ip.entrego = 0)
+inner join cliente_principal clip on clip.id = cp.cliente_principal_origen_id  
+where referencia not like "mei%"
+and clip.id in (select rcs.cliente_principal_id 
+from ruta_config_sucursal rcs  
+where rcs.ruta_principal_id = @idRuta
+and rcs.cliente_principal_id <> 0)
+and vg.cotizacion_prinicpal_destino_id  in (SELECT dp.id
+FROM destino_principal dp  
+WHERE FIND_IN_SET(dp.id, REPLACE((select rp.orden_parada
+from ruta_principal rp
+where rp.id = @idRuta ), ';', ',')))
+group by vg.referencia
+order by vg.sucursal_principal_ubicacion_id,  vg.fecha_registro
+
+set @IdRuta = 4;
+/*revision de bug para la planeacion*/
+
+select 
+vg.referencia,
+cp.sucursal_principal_id, 
+sp.nombre as sucursal_principal, 
+vg.fecha_registro, 
+vg.sucursal_principal_ubicacion_id as sucursal_ubicacion_id,
+sp2.nombre as sucursal_ubicacion,
+vg.sucursal_destino_id ,
+sp3.nombre as sucursal_destino,
+cp.origen_id,
+dp2.nombre as destino_origen,
+cp.destino_id,
+dp2.nombre as destino_final,
+cp.cotizacion_principal_volumen,
+cp.cotizacion_principal_peso ,
+cp.flete,
+cp.monto_seguro,
+cp.subtotal,
+cmd.empaque_id,
+cmd.Empaque,
+sum(cmd.cantidad_caja) as cantidad_caja,
+clip.id as idCliente,
+clip.nombre as clienteOrigen
+from viaje_guia vg
+inner join cotizacion_principal cp on cp.id= vg.cotizacion_principal_id 
+inner join cotizacion_monto_detalle cmd on cmd.cotizacion_principal_id = vg.cotizacion_principal_id 
+and vg.viaje_operacion_id in (1,19)
+and vg.sucursal_principal_ubicacion_id  <> vg.sucursal_destino_id 
+and vg.fecha_registro between adddate(current_date(), interval -90 day)  and current_date()
+and vg.sucursal_principal_ubicacion_id in (
+/*Este subquery me da las sucursales que estan configuradas para una ruta*/
+select rcs.sucursal_principal_id 
+from ruta_config_sucursal rcs 
+where rcs.ruta_principal_id = @IdRuta  
+and rcs.cliente_principal_id = 0)
+and vg.llego = 0
+inner join sucursal_principal sp on sp.id = cp.sucursal_principal_id 
+inner join sucursal_principal sp2 on sp2.id = vg.sucursal_principal_ubicacion_id 
+inner join sucursal_principal sp3 on sp3.id = vg.sucursal_destino_id 
+inner join inventario_principal ip on ip.cotizacion_principal_id = vg.cotizacion_principal_id 
+inner join destino_principal dp2 on dp2.id = cp.origen_id 
+inner join destino_principal dp3 on dp3.id = cp.destino_id  
+and (ip.llego = 0 or ip.entrego = 0)
+inner join cliente_principal clip on clip.id = cp.cliente_principal_origen_id  
+where referencia not like "mei%"
+and clip.id not in (select rcs.cliente_principal_id 
+from ruta_config_sucursal rcs    
+where rcs.ruta_principal_id = @IdRuta  
+and rcs.cliente_principal_id <> 0)
+and vg.cotizacion_prinicpal_destino_id  in (SELECT dp.id
+FROM destino_principal dp  
+WHERE FIND_IN_SET(dp.id, REPLACE((select rp.orden_parada
+from ruta_principal rp
+where rp.id = @IdRuta  ), ';', ','))) 
+/*and referencia = "gua-422162"*/
+/*and clip.nombre = "fleximatic"*/
+group by vg.referencia
+order by vg.sucursal_principal_ubicacion_id,  vg.fecha_registro
+;
+
+
+
+select * 
+from ruta_config_sucursal rcs 
+
+/*
+ * 148608
+ * 46
+ * 19674
+ * 109409*/
+
+/*1
+ *5 */
+
+
+INSERT INTO ruta_config_sucursal (sucursal_principal_id, cliente_principal_id,  )
+VALUES (valor1_1, valor2_1, valor3_1, valor4_1),
+       (valor1_2, valor2_2, valor3_2, valor4_2),
+       (valor1_3, valor2_3, valor3_3, valor4_3),
+       (valor1_4, valor2_4, valor3_4, valor4_4);
+      
+set @Ruta = 291
+
+INSERT INTO ruta_config_sucursal
+(sucursal_principal_id, cliente_principal_id, ruta_principal_id, ruta_status_id, Fecha_alta, fecha_modificacion, empleado_actualiza_id, empleado_alta_id, origen_principal_id)
+VALUES(1, 148608, @Ruta , 1, '2024-01-25', '2024-01-25', 1, 1, 1),
+(1, 46, @Ruta , 1, '2024-01-25', '2024-01-25', 1, 1, 1),
+(1, 19674, @Ruta , 1, '2024-01-25', '2024-01-25', 1, 1, 1),
+(1, 109409, @Ruta , 1, '2024-01-25', '2024-01-25', 1, 1, 1),
+(5, 148608, @Ruta , 1, '2024-01-25', '2024-01-25', 1, 1, 1),
+(5, 46, @Ruta , 1, '2024-01-25', '2024-01-25', 1, 1, 1),
+(5, 19674, @Ruta , 1, '2024-01-25', '2024-01-25', 1, 1, 1),
+(5, 109409, @Ruta , 1, '2024-01-25', '2024-01-25', 1, 1, 1);
+
+
+
+
+
+
+
+select *
+from cotizacion_principal cp
+where num_guia = "mty-91493"
+
+select *
+from cxc_principal cp 
+where cp.referencia2 = 
+
+select * 
+from empleado_principal ep 
+where nombre like "%jorge%"
+and ep.empleado_estatus_id = 1
+
+
+select *
+from cliente_empleado ce 
+
+select *
+from ruta_principal rp 

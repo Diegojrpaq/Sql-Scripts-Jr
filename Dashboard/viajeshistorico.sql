@@ -388,3 +388,43 @@ where vt.viaje_principal_id = 57407
 group by vt.num_guia, vt.IdTipoOperacion 
 order by vt.Fecha_registro
 
+
+
+/*modificacion de query para carga sumando el monto detalle cambio : 23/01/2024*/
+select 
+vt.viaje_principal_id as id_viaje,
+vr.nombre,
+date_format(vr.fecha_registro, '%d-%m-%Y') as fecha_registro  ,
+vr.activo_vehiculo_id,
+av.clave,
+av.Peso_carga_max ,
+av.Volumen_carga_max ,
+vr.activo_vehiculo_caja_id as idCaja,
+vt.num_guia,
+vt.IdTipoOperacion,
+vt.Ubicacion as ubicacion_transaccion,
+date_format(vt.Fecha_registro, '%d-%m-%Y %h:%i:%s')  as fecha_de_transaccion,
+vt.carta_porte_origen_id as origen_cotizacion_id,
+dp.nombre as origen_cotizacion,
+vt.carta_porte_destino_id as destino_cotizacion_id,
+dp2.nombre as destino_cotizacion,
+vt.Viaje_ubicacion_id  as ubicacion_transaccion_id,
+cp.cotizacion_principal_volumen,
+cp.cotizacion_principal_peso ,
+cp.flete,
+cp.monto_seguro,
+cp.subtotal,
+cmd.empaque_id,
+cmd.Empaque,
+sum(cmd.cantidad_caja) as cantidad_caja
+from viaje_transacciones vt 
+inner join destino_principal dp on dp.id = carta_porte_origen_id 
+inner join destino_principal dp2 on dp2.id=carta_porte_destino_id 
+inner join viaje_ruta vr on vr.id = viaje_principal_id 
+inner join activo_vehiculo av on av.id = vr.activo_vehiculo_id 
+inner join cotizacion_principal cp on cp.id = vt.cotizacion_principal_id 
+inner join cotizacion_monto_detalle cmd on cmd.cotizacion_principal_id = cp.id
+and vt.IdTipoOperacion in (17, 18)
+where vt.viaje_principal_id = @idViaje
+group by vt.num_guia, vt.IdTipoOperacion
+order by vt.Fecha_registro
