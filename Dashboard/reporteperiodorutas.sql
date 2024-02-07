@@ -172,4 +172,5 @@ as idLimpios on vt.id = idLimpios.idTransacciones
 inner join destino_principal dp on dp.id=vr.destino_principal_id 
 where vt.IdTipoOperacion in (17)
 group by idViaje
+having sum(cp.subtotal) <> 0
 
